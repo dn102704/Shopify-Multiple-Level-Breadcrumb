@@ -1,0 +1,142 @@
+{% comment %}
+
+Product: Checking to see if product type matches with only one of product's collection's title.
+Addresses: Going back to My Account
+Blogs: Going back to the parent Blog
+
+Note: Add 'js-{{ template.name }}' class to the container below it.
+
+{% endcomment %}
+
+{% assign menu_list = linklists['copy-of-0421-desktop-mega-menu-v-1-shoes'] %}
+
+<nav class="breadcrumb {{ class }}" role="navigation" aria-label="breadcrumbs">
+
+  {% comment %}TODO: Planning on changing these to switch cases but will do it later so no merge conflicts{% endcomment %}
+  
+  <a href="{{ routes.root_url }}" title="{{ 'general.breadcrumbs.home_link_title' | t }}">{{ 'general.breadcrumbs.home' | t }}</a>
+  <span class="breadcrumb__divider" aria-hidden="true">></span>
+  
+  {% if request.page_type == 'product' %}
+    {% liquid
+      assign top_level = false
+      assign top_level_second = false
+      assign bottom_level = false
+      assign top_level_link = ''
+      assign top_level_title = ''
+      assign bottom_level_link = ''
+      assign bottom_level_title = ''
+      
+      if collection
+        assign top_level = true
+        assign top_level_link = collection.url
+        assign top_level_title = collection.title
+        for b_link in menu_list.links
+          if collection.url == b_link.url
+            assign top_level = true
+            assign top_level_link = b_link.url
+            assign top_level_title = b_link.title
+            break
+          else
+            if b_link.links
+              for b_b_link in b_link.links
+                if b_b_link.links
+                  for b_b_b_link in b_b_link.links
+                    if b_b_b_link.url == collection.url
+                      assign top_level_second = true
+                      assign top_level_link = b_link.url
+                      assign top_level_title = b_link.title
+                      assign bottom_level = true
+                      assign bottom_level_link = b_b_b_link.url
+                      assign bottom_level_title = b_b_b_link.title
+                      break
+                    endif
+                  endfor
+                endif
+              endfor
+            endif          
+          endif
+        endfor
+      else
+        if product.metafields.breadcrumb.collection_fallback_handle != blank
+          assign downcase_metafield = product.metafields.breadcrumb.collection_fallback_handle | downcase
+          assign getCollection = collections[downcase_metafield]
+          assign top_level = true
+          assign top_level_link = getCollection.url
+          assign top_level_title = getCollection.title
+        else
+          assign product_type_handle = product.type | handleize
+          assign getCollection = collections[product_type_handle]
+          unless getCollection
+            assign getCollection = product.collections | first
+          endunless
+          assign top_level = true
+          assign top_level_link = getCollection.url
+          assign top_level_title = getCollection.title
+        endif
+      endif
+    %}
+  
+    {% if top_level or top_level_second %}
+      {% if top_level_title != blank %}
+        <a href="{{ top_level_link }}" title="{{ top_level_title }}">{{ top_level_title | downcase }}</a>
+        <span class="breadcrumb__divider" aria-hidden="true">></span>
+      {% endif %}
+    {% endif %}
+    {% if bottom_level %}
+      {% if bottom_level_title != blank %}
+        <a href="{{ bottom_level_link }}" title="{{ bottom_level_title }}" class="hide-until@md">{{ bottom_level_title | downcase }}</a>
+        <span class="breadcrumb__divider hide-until@md" aria-hidden="true">></span>
+      {% endif %}
+    {% endif %}
+    
+    {%- assign genericProductTitle = product.title | split: '- ' -%}
+    {% capture productTitle %}
+    {%- if genericProductTitle.size > 1 -%}
+      {{ genericProductTitle[0] }}
+    {%- else -%}
+      {{ product.title}}
+    {%- endif -%}
+    {% endcapture %}
+    <span>{{ productTitle }}</span>
+  {% elsif request.page_type == 'collection' %}
+    {%- liquid
+      assign menu_list = linklists['copy-of-0421-desktop-mega-menu-v-1-shoes']
+      assign top_level = false
+      assign top_level_link = ''
+      assign top_level_title = ''
+       
+      for b_link in menu_list.links
+        if collection.url != b_link.url
+          if b_link.links
+            for b_b_link in b_link.links
+              if b_b_link.links
+                for b_b_b_link in b_b_link.links
+                  if b_b_b_link.url == collection.url
+                    assign top_level = true
+                    assign top_level_link = b_link.url
+                    assign top_level_title = b_link.title
+                    break
+                  endif
+                endfor
+              endif
+            endfor
+          endif          
+        endif
+      endfor
+    -%}
+    {%- if top_level and top_level_title != blank -%}
+      <a href="{{ top_level_link }}" title="{{ top_level_title }}">{{ top_level_title }}</a>
+      <span class="breadcrumb__divider" aria-hidden="true">></span>
+    {%- endif -%}
+    <span>{{ collection.title }}</span>
+  {% elsif request.page_type == 'article' %}
+    {% if blog.title != 'Live Shopping' %}
+      <a href="{{ blog.url }}" title="{{ blog.title }}">{{ blog.title }}</a>
+      <span class="breadcrumb__divider" aria-hidden="true">></span>
+    {% endif %}
+    <span>{{ page_title }}</span>
+  {% else %}
+    <span>{{ page_title }}</span>
+  {% endif %}
+</nav>
